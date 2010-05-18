@@ -9,9 +9,20 @@
     [(windows)
      (build-path (getenv "WINDIR") "system32" "OpenCL")]
     [else
-     (error 'opencl "This platform is not (yet) supported.")]))
+     ;; Assume libOpenCL is found in LD_LIBRARY_PATH
+     "libOpenCL"]))
 
-(define opencl-lib (ffi-lib opencl-path))
+(define opencl-lib
+  (with-handlers
+      ([exn?
+        (lambda (e)
+          (when (eq? (system-type) 'unix)
+            ;; Be moderately useful if library loading fails on Unix
+            (display
+             "Error loading the OpenCL library. Please make sure libOpenCL.so is in your LD_LIBRARY_PATH\n"
+             (current-error-port)))
+          (raise e))])
+    (ffi-lib opencl-path)))
 
 (define-syntax define-opencl
   (syntax-rules ()
